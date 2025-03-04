@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { TaskDto } from './task.dto';
 import { Prisma } from '@prisma/client';
 import { PrismaError } from '../database/prisma-error.enum';
+import { TaskNotFoundException } from './task-not-found-exception';
+import { TitleNotUniqueException } from './title-not-unique-exception';
 
 @Injectable()
 export class TasksService {
@@ -19,7 +21,7 @@ export class TasksService {
       },
     });
     if (!task) {
-      throw new NotFoundException();
+      throw new TaskNotFoundException(id);
     }
     return task;
   }
@@ -36,20 +38,32 @@ export class TasksService {
         },
       });
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === PrismaError.RecordDoesNotExist
-      ) {
-        throw new NotFoundException();
+      const prismaError = error as Prisma.PrismaClientKnownRequestError;
+
+      if (prismaError.code === PrismaError.RecordDoesNotExist) {
+        throw new TaskNotFoundException(id);
+      }
+      if (prismaError.code === PrismaError.UniqueConstraintViolated) {
+        throw new TitleNotUniqueException(task.title);
       }
       throw error;
     }
   }
 
   createTask(task: TaskDto) {
-    return this.prismaService.task.create({
-      data: task,
-    });
+    try {
+      return this.prismaService.task.create({
+        data: task,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === PrismaError.UniqueConstraintViolated
+      ) {
+        throw new TitleNotUniqueException(task.title);
+      }
+      throw error;
+    }
   }
 
   async deleteTask(id: number) {
@@ -64,7 +78,7 @@ export class TasksService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === PrismaError.RecordDoesNotExist
       ) {
-        throw new NotFoundException();
+        throw new TaskNotFoundException(id);
       }
       throw error;
     }
