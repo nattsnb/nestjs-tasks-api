@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { TaskDto } from './task.dto';
+import { TaskDto } from './dto/task.dto';
 import { Prisma } from '@prisma/client';
 import { PrismaError } from '../database/prisma-error.enum';
 import { TaskNotFoundException } from './task-not-found-exception';
 import { TitleNotUniqueException } from './title-not-unique-exception';
+import { CreateTaskDto } from './dto/create-task.dto';
+import { NoTasksToDeleteException } from './no-tasks-to-delete-exception';
 
 @Injectable()
 export class TasksService {
@@ -26,7 +28,7 @@ export class TasksService {
     return task;
   }
 
-  async upDateTask(id: number, task: TaskDto) {
+  async updateTask(id: number, task: TaskDto) {
     try {
       return await this.prismaService.task.update({
         data: {
@@ -50,9 +52,9 @@ export class TasksService {
     }
   }
 
-  createTask(task: TaskDto) {
+  async createTask(task: CreateTaskDto) {
     try {
-      return this.prismaService.task.create({
+      return await this.prismaService.task.create({
         data: task,
       });
     } catch (error) {
@@ -62,6 +64,7 @@ export class TasksService {
       ) {
         throw new TitleNotUniqueException(task.title);
       }
+
       throw error;
     }
   }
@@ -79,6 +82,28 @@ export class TasksService {
         error.code === PrismaError.RecordDoesNotExist
       ) {
         throw new TaskNotFoundException(id);
+      }
+      throw error;
+    }
+  }
+
+  async deleteAllTasks() {
+    try {
+      const allTasks = await this.getAllTasks();
+      const allArticlesIds: number[] = allTasks.map((task) => task.id);
+      return await this.prismaService.task.deleteMany({
+        where: {
+          id: {
+            in: allArticlesIds,
+          },
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === PrismaError.RecordDoesNotExist
+      ) {
+        throw new NoTasksToDeleteException();
       }
       throw error;
     }
