@@ -14,7 +14,6 @@ export class UpdateTaskDto {
   description: string;
 
   @IsBoolean()
-  @IsNotEmpty()
   @Transform(({ value }) => value === 'true' || value === true)
   isCompleted: boolean;
 }
