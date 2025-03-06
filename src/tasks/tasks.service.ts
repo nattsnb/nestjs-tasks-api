@@ -90,7 +90,7 @@ export class TasksService {
   async deleteAllTasks() {
     try {
       const allTasks = await this.getAllTasks();
-      const allArticlesIds: number[] = allTasks.map((task) => task.id);
+      const allArticlesIds = allTasks.map((task) => task.id);
       return await this.prismaService.task.deleteMany({
         where: {
           id: {
