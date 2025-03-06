@@ -1,5 +1,5 @@
 export interface TaskDto {
   title: string;
-  description: string;
+  description?: string;
   isCompleted: boolean;
 }
