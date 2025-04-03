@@ -1,5 +1,4 @@
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { CanBeUndefined } from '../../Utilities/can-be-undefined';
 import { Transform } from 'class-transformer';
 
 export class CreateTaskDto {
@@ -9,7 +8,6 @@ export class CreateTaskDto {
 
   @IsString()
   @IsOptional()
-  @CanBeUndefined()
   @IsNotEmpty()
   description: string;
 
